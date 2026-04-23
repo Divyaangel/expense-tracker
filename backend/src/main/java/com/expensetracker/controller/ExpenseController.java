@@ -5,6 +5,7 @@ import com.expensetracker.dto.ExpenseResponse;
 import com.expensetracker.model.Expense;
 import com.expensetracker.repository.ExpenseRepository;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -66,21 +67,22 @@ public class ExpenseController {
     @GetMapping
     public List<ExpenseResponse> list(
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(required = false, defaultValue = "recent") String sort) {
 
         String userId = currentUserId();
-        List<Expense> expenses;
-        boolean sortByDate = "date_desc".equals(sort);
 
-        if (category != null && !category.isBlank()) {
-            expenses = sortByDate
-                    ? repo.findByUserIdAndCategoryOrderByDateDescCreatedAtDesc(userId, category)
-                    : repo.findByUserIdAndCategoryOrderByCreatedAtDesc(userId, category);
-        } else {
-            expenses = sortByDate
-                    ? repo.findByUserIdOrderByDateDescCreatedAtDesc(userId)
-                    : repo.findByUserIdOrderByCreatedAtDesc(userId);
-        }
+        Sort ordering = switch (sort) {
+            case "date_desc" -> Sort.by(Sort.Order.desc("date"), Sort.Order.desc("createdAt"));
+            case "date_asc" -> Sort.by(Sort.Order.asc("date"), Sort.Order.asc("createdAt"));
+            case "oldest" -> Sort.by(Sort.Order.asc("createdAt"));
+            case "amount_desc" -> Sort.by(Sort.Order.desc("amountCents"), Sort.Order.desc("createdAt"));
+            case "amount_asc" -> Sort.by(Sort.Order.asc("amountCents"), Sort.Order.asc("createdAt"));
+            default -> Sort.by(Sort.Order.desc("createdAt")); // "recent"
+        };
+
+        List<Expense> expenses = (category != null && !category.isBlank())
+                ? repo.findByUserIdAndCategory(userId, category, ordering)
+                : repo.findByUserId(userId, ordering);
 
         return expenses.stream().map(ExpenseResponse::from).toList();
     }

@@ -11,10 +11,14 @@ export default function Filters({ category, sort, onCategoryChange, onSortChange
         </select>
       </label>
       <label>
-        Sort
+        Sort by
         <select value={sort} onChange={(e) => onSortChange(e.target.value)}>
-          <option value="">Latest added</option>
+          <option value="recent">Recently added</option>
+          <option value="oldest">Oldest added</option>
           <option value="date_desc">Date (newest first)</option>
+          <option value="date_asc">Date (oldest first)</option>
+          <option value="amount_desc">Amount (high → low)</option>
+          <option value="amount_asc">Amount (low → high)</option>
         </select>
       </label>
     </div>

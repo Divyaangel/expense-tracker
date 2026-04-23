@@ -10,7 +10,7 @@ export default function App() {
   const [authed, setAuthed] = useState(isLoggedIn());
   const [expenses, setExpenses] = useState([]);
   const [category, setCategory] = useState("");
-  const [sort, setSort] = useState("date_desc");
+  const [sort, setSort] = useState("recent");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
