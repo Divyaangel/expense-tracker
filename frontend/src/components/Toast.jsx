@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export default function Toast({ message, onClose }) {
+export default function Toast({ message, type = "error", onClose }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -11,8 +11,8 @@ export default function Toast({ message, onClose }) {
   if (!visible) return null;
 
   return (
-    <div className="toast" role="alert">
-      <span>{message}</span>
+    <div className={`toast toast-${type}`} role="alert">
+      <span>{type === "success" ? "✅ " : "⚠️ "}{message}</span>
       <button onClick={() => { setVisible(false); onClose(); }} aria-label="Close">✕</button>
     </div>
   );

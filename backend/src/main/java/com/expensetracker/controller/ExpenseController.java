@@ -97,4 +97,15 @@ public class ExpenseController {
                 "totalItems", result.getTotalElements()
         );
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        String userId = currentUserId();
+        Optional<Expense> expense = repo.findById(id);
+        if (expense.isEmpty() || !expense.get().getUserId().equals(userId)) {
+            return ResponseEntity.notFound().build();
+        }
+        repo.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
 }

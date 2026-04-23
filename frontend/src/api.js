@@ -74,3 +74,9 @@ export async function fetchExpenses({ category, sort, page = 0, size = 10 } = {}
   if (!res.ok) throw new Error("Failed to fetch expenses");
   return res.json();
 }
+
+export async function deleteExpense(id) {
+  const res = await fetch(`${API}/expenses/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (res.status === 401) { logout(); window.location.reload(); }
+  if (!res.ok) throw new Error("Failed to delete expense");
+}
