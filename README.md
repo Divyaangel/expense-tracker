@@ -7,15 +7,16 @@ A full-stack personal expense tracker with a **Java (Spring Boot)** backend and 
 ### Prerequisites
 
 - Java 17+ (`java --version`)
-- Maven 3.8+ (`mvn --version`)
 - Node.js 18+ (`node --version`)
 
 ### Backend
 
 ```bash
 cd backend
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
+
+> No Maven installation needed — the included Maven Wrapper (`mvnw`) handles it.
 
 Runs on **http://localhost:4000**. SQLite database is created automatically at `backend/data/expenses.db`.
 
@@ -33,7 +34,7 @@ Runs on **http://localhost:5173**. Open in your browser.
 
 ```bash
 cd backend
-mvn test
+./mvnw test
 ```
 
 ---
