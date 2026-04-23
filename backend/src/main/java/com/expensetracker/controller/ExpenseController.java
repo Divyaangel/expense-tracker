@@ -5,13 +5,15 @@ import com.expensetracker.dto.ExpenseResponse;
 import com.expensetracker.model.Expense;
 import com.expensetracker.repository.ExpenseRepository;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -65,9 +67,11 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public List<ExpenseResponse> list(
+    public Map<String, Object> list(
             @RequestParam(required = false) String category,
-            @RequestParam(required = false, defaultValue = "recent") String sort) {
+            @RequestParam(required = false, defaultValue = "recent") String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
         String userId = currentUserId();
 
@@ -77,13 +81,20 @@ public class ExpenseController {
             case "oldest" -> Sort.by(Sort.Order.asc("createdAt"));
             case "amount_desc" -> Sort.by(Sort.Order.desc("amountCents"), Sort.Order.desc("createdAt"));
             case "amount_asc" -> Sort.by(Sort.Order.asc("amountCents"), Sort.Order.asc("createdAt"));
-            default -> Sort.by(Sort.Order.desc("createdAt")); // "recent"
+            default -> Sort.by(Sort.Order.desc("createdAt"));
         };
 
-        List<Expense> expenses = (category != null && !category.isBlank())
-                ? repo.findByUserIdAndCategory(userId, category, ordering)
-                : repo.findByUserId(userId, ordering);
+        PageRequest pageable = PageRequest.of(page, size, ordering);
 
-        return expenses.stream().map(ExpenseResponse::from).toList();
+        Page<Expense> result = (category != null && !category.isBlank())
+                ? repo.findByUserIdAndCategory(userId, category, pageable)
+                : repo.findByUserId(userId, pageable);
+
+        return Map.of(
+                "expenses", result.getContent().stream().map(ExpenseResponse::from).toList(),
+                "page", result.getNumber(),
+                "totalPages", result.getTotalPages(),
+                "totalItems", result.getTotalElements()
+        );
     }
 }

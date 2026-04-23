@@ -7,8 +7,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,9 +23,10 @@ class ExpenseControllerTest {
 
     private String token;
 
+    private static final ParameterizedTypeReference<Map<String, Object>> PAGE_TYPE = new ParameterizedTypeReference<>() {};
+
     @BeforeEach
     void setUp() {
-        // Register a test user
         Map<String, String> regBody = Map.of("name", "Test", "email", "test" + System.nanoTime() + "@test.com", "password", "password123");
         ResponseEntity<AuthResponse> regRes = rest.postForEntity("/auth/register", regBody, AuthResponse.class);
         assertEquals(HttpStatus.CREATED, regRes.getStatusCode());
@@ -37,6 +40,14 @@ class ExpenseControllerTest {
         return h;
     }
 
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> getExpenses(HttpHeaders headers, String query) {
+        String url = "/expenses" + (query != null ? "?" + query : "");
+        ResponseEntity<Map<String, Object>> res = rest.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), PAGE_TYPE);
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        return (List<Map<String, Object>>) res.getBody().get("expenses");
+    }
+
     @Test
     void createAndListExpenses() {
         Map<String, Object> body = Map.of("amount", 150.50, "category", "Food", "description", "Lunch", "date", "2026-04-23", "idempotencyKey", "key-" + System.nanoTime());
@@ -46,20 +57,18 @@ class ExpenseControllerTest {
         assertEquals(HttpStatus.CREATED, created.getStatusCode());
         assertEquals(150.50, created.getBody().getAmount());
 
-        // Idempotency: same key returns same record
+        // Idempotency
         ResponseEntity<ExpenseResponse> dup = rest.exchange("/expenses", HttpMethod.POST, new HttpEntity<>(body, authHeaders()), ExpenseResponse.class);
         assertEquals(HttpStatus.OK, dup.getStatusCode());
         assertEquals(created.getBody().getId(), dup.getBody().getId());
 
         // List
-        ResponseEntity<ExpenseResponse[]> list = rest.exchange("/expenses", HttpMethod.GET, new HttpEntity<>(authHeaders()), ExpenseResponse[].class);
-        assertEquals(HttpStatus.OK, list.getStatusCode());
-        assertTrue(list.getBody().length >= 1);
+        List<Map<String, Object>> list = getExpenses(authHeaders(), null);
+        assertTrue(list.size() >= 1);
 
         // Filter
-        ResponseEntity<ExpenseResponse[]> filtered = rest.exchange("/expenses?category=Food&sort=date_desc", HttpMethod.GET, new HttpEntity<>(authHeaders()), ExpenseResponse[].class);
-        assertEquals(HttpStatus.OK, filtered.getStatusCode());
-        for (ExpenseResponse e : filtered.getBody()) assertEquals("Food", e.getCategory());
+        List<Map<String, Object>> filtered = getExpenses(authHeaders(), "category=Food&sort=date_desc");
+        for (var e : filtered) assertEquals("Food", e.get("category"));
     }
 
     @Test
@@ -70,7 +79,6 @@ class ExpenseControllerTest {
 
     @Test
     void usersCannotSeeEachOthersExpenses() {
-        // User 1 creates an expense
         Map<String, Object> body = Map.of("amount", 100, "category", "Food", "description", "Mine", "date", "2026-04-23");
         rest.exchange("/expenses", HttpMethod.POST, new HttpEntity<>(body, authHeaders()), ExpenseResponse.class);
 
@@ -80,8 +88,7 @@ class ExpenseControllerTest {
         HttpHeaders h2 = new HttpHeaders();
         h2.setBearerAuth(reg2Res.getBody().getToken());
 
-        // User 2 sees no expenses
-        ResponseEntity<ExpenseResponse[]> list = rest.exchange("/expenses", HttpMethod.GET, new HttpEntity<>(h2), ExpenseResponse[].class);
-        assertEquals(0, list.getBody().length);
+        List<Map<String, Object>> list = getExpenses(h2, null);
+        assertEquals(0, list.size());
     }
 }

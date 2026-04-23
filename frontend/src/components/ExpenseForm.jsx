@@ -3,7 +3,7 @@ import { createExpense } from "../api";
 
 const CATEGORIES = ["Food", "Transport", "Entertainment", "Utilities", "Health", "Shopping", "Other"];
 
-export default function ExpenseForm({ onCreated }) {
+export default function ExpenseForm({ onCreated, onError }) {
   const [form, setForm] = useState({ amount: "", category: CATEGORIES[0], description: "", date: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -24,6 +24,7 @@ export default function ExpenseForm({ onCreated }) {
       onCreated();
     } catch (err) {
       setError(err.message);
+      if (onError) onError(err.message);
     } finally {
       setSubmitting(false);
     }

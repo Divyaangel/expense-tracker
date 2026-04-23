@@ -63,10 +63,12 @@ export async function createExpense(data, idempotencyKey) {
   return res.json();
 }
 
-export async function fetchExpenses({ category, sort } = {}) {
+export async function fetchExpenses({ category, sort, page = 0, size = 10 } = {}) {
   const params = new URLSearchParams();
   if (category) params.set("category", category);
   if (sort) params.set("sort", sort);
+  params.set("page", page);
+  params.set("size", size);
   const res = await fetch(`${API}/expenses?${params}`, { headers: authHeaders() });
   if (res.status === 401) { logout(); window.location.reload(); }
   if (!res.ok) throw new Error("Failed to fetch expenses");
