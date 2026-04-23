@@ -15,6 +15,7 @@ export default function ExpenseForm({ onCreated, onError }) {
     const amount = parseFloat(form.amount);
     if (!amount || amount <= 0) return setError("Amount must be a positive number");
     if (!form.date) return setError("Date is required");
+    if (form.date > today) return setError("Future dates are not allowed");
 
     const idempotencyKey = `${form.date}-${form.category}-${amount}-${Date.now()}`;
     setSubmitting(true);
@@ -28,6 +29,18 @@ export default function ExpenseForm({ onCreated, onError }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const handleDateChange = (e) => {
+    let val = e.target.value;
+    // Reject if year portion exceeds 4 digits
+    const parts = val.split("-");
+    if (parts[0] && parts[0].length > 4) return;
+    // Reject future dates
+    if (val > today) return;
+    setForm({ ...form, date: val });
   };
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
@@ -49,7 +62,7 @@ export default function ExpenseForm({ onCreated, onError }) {
         </label>
         <label>
           Date
-          <input type="date" value={form.date} onChange={update("date")} required />
+          <input type="date" value={form.date} onChange={handleDateChange} max={today} required />
         </label>
       </div>
       <label>
